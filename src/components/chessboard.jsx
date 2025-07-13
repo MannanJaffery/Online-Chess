@@ -17,6 +17,7 @@ const ChessBoard = () => {
   const [selectedPiece, setSelectedPiece] = useState(null);
   const [turn, setTurn] = useState('w');
   const [kingChecked, setKingChecked] = useState(null);
+  const [lastmove, setLastMove] = useState(null);
 
 
 
@@ -28,10 +29,6 @@ const ChessBoard = () => {
   b_rookLeftMoved: false,
   b_rookRightMoved: false,
 });
-
-
-
-
 
 
   const directions = {
@@ -56,7 +53,7 @@ const ChessBoard = () => {
     const moves = [];
     const isWhite = piece.endsWith('_w');
     const opponentColor = isWhite ? '_b' : '_w';
-    const addMove = (r, c) => moves.push({ row: r, col: c });
+    const addMove = (r, c , extra={}) => moves.push({ row: r, col: c,...extra });
 
     switch (piece) {
       case 'p_w':
@@ -78,6 +75,21 @@ const ChessBoard = () => {
             if (target && target.endsWith(opponentColor)) addMove(row + dir, c);
           }
         }
+
+        
+          if (lastmove && lastmove.piece.startsWith('p_')) {
+            const isEnemyDoubleStep = 
+              Math.abs(lastmove.from.row - lastmove.to.row) === 2 &&
+              lastmove.to.row === row && 
+              Math.abs(lastmove.to.col - col) === 1 && 
+              lastmove.piece.endsWith(opponentColor);
+
+            if (isEnemyDoubleStep) {
+              const direction = piece === 'p_w' ? -1 : 1;
+              addMove(row + direction, lastmove.to.col, { enPassant: true });
+            }
+          }
+
         break;
       }
       case 'n_w':
@@ -269,11 +281,27 @@ const ChessBoard = () => {
     setValidMoves(moves);
   };
 
+
+
   const updateBoard = (row, col) => {
+
+
+
     const isValid = validMoves.some(m => m.row === row && m.col === col);
     if (!isValid || !selectedSquare || !selectedPiece) return;
 
+
+
+    const move = validMoves.find(move=>move.row===row&&move.col===col);
+
+    
     const newBoard = board.map(r => [...r]);
+
+    if(move?.enPassant){
+      const capturedrow = turn==='w'? row+1:row-1;
+      newBoard[capturedrow][col]='';
+    }
+    
     newBoard[row][col] = selectedPiece;
     newBoard[selectedSquare.row][selectedSquare.col] = '';
     setBoard(newBoard);
@@ -318,8 +346,9 @@ const ChessBoard = () => {
   }
 }
     if(selectedPiece==='r_b' && selectedSquare===0) setCastleRights(prev=>({...prev,b_rookLeftMoved:true}));
-    if(selectedPiece === 'r_b' && selectedSquare===7) setCastleRights(prev=>({...prev,b_rookRightMoved:true}))
    
+
+    if(selectedPiece === 'r_b' && selectedSquare===7) setCastleRights(prev=>({...prev,b_rookRightMoved:true}))
 
 
 
@@ -338,13 +367,22 @@ const ChessBoard = () => {
     return;
   }
 
+  //last move
+  setLastMove({
+    piece:selectedPiece,
+    from:{row:selectedSquare.row,col:selectedSquare.col},
+    to:{row,col},
+  })
 
-    
+
 
     setTurn(turn === 'w' ? 'b' : 'w');
 
     
     setValidMoves([]);
+
+
+
   };
 
 
