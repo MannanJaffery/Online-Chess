@@ -20,6 +20,7 @@ const Username = () => {
     await addDoc(collection(db, "users"), {
       username: uname,
       createdAt: serverTimestamp(),
+      uid:auth.currentUser.uid,
     });
 
     console.log("stored in db", uname);
@@ -64,9 +65,6 @@ const Username = () => {
   </form>
 </div>
 
-
-
-    
     </>
   )
 }
