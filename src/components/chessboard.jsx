@@ -1,6 +1,7 @@
 import { useState } from "react";
 
-const ChessBoard = () => {
+const ChessBoard = ({isOnline =false, gameid=null}) => {
+
   const [board, setBoard] = useState([
     ['r_b','n_b','b_b','q_b','k_b','b_b','n_b','r_b'],
     ['p_b','p_b','p_b','p_b','p_b','p_b','p_b','p_b'],
@@ -11,6 +12,9 @@ const ChessBoard = () => {
     ['p_w','p_w','p_w','p_w','p_w','p_w','p_w','p_w'],
     ['r_w','n_w','b_w','q_w','k_w','b_w','n_w','r_w'],
   ]);
+  console.log("isonline" , isOnline);
+  console.log("gameid" , gameid);
+
 
   const [validMoves, setValidMoves] = useState([]);
   const [selectedSquare, setSelectedSquare] = useState(null);
@@ -18,8 +22,6 @@ const ChessBoard = () => {
   const [turn, setTurn] = useState('w');
   const [kingChecked, setKingChecked] = useState(null);
   const [lastmove, setLastMove] = useState(null);
-
-
 
   const [castleRights, setCastleRights] = useState({
   w_kingMoved: false,
@@ -283,11 +285,13 @@ const ChessBoard = () => {
 
 
 
+
   const updateBoard = (row, col) => {
 
 
 
     const isValid = validMoves.some(m => m.row === row && m.col === col);
+    
     if (!isValid || !selectedSquare || !selectedPiece) return;
 
 
@@ -441,7 +445,11 @@ const ChessBoard = () => {
           );
         })
       )}
+
+     
     </div>
   );
+
+   
 };
 export default ChessBoard;
