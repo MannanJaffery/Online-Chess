@@ -1,6 +1,59 @@
-import { useState } from "react";
+import { collection, getDoc , getDocs , doc, updateDoc, onSnapshot } from "firebase/firestore";
+import { useEffect, useState } from "react";
+import { db } from "../firebase";
+import { query , where   } from "firebase/firestore";
+import { auth } from "../firebase";
 
 const ChessBoard = ({isOnline =false, gameid=null}) => {
+
+  useEffect(() => {
+    const func = async () => {
+      if (!isOnline || !gameid) return;
+
+      try {
+        const docRef = doc(db, "games", gameid);
+        const gameSnap = await getDoc(docRef);
+
+        if (!gameSnap.exists()) {
+          console.log("Game does not exist");
+          return;
+        }
+
+        const gameData = gameSnap.data();
+        console.log("Game exists:", gameData);
+
+        const userSnap = await getDocs(
+          query(collection(db, "users"), where("uid", "==", auth.currentUser.uid))
+        );
+        const currentUsername = userSnap.docs[0]?.data().username;
+        
+        if(!gameData.player2){
+          if(gameData.player1!=currentUsername){
+            await updateDoc(docRef , {
+              player2:currentUsername,
+              status:"active",
+            })
+          }
+        }
+
+        console.log("Current user in func:", currentUsername);
+      } catch (err) {
+        console.error("Error in func:", err);
+      }
+    };
+
+    func();
+  }, [isOnline, gameid]); //when a user joins with a direct link then what , we have to refresh(later fix)
+
+  const initialBoard = [['r_b','n_b','b_b','q_b','k_b','b_b','n_b','r_b'],
+    ['p_b','p_b','p_b','p_b','p_b','p_b','p_b','p_b'],
+    ['','','','','','','',''],
+    ['','','','','','','',''],
+    ['','','','','','','',''],
+    ['','','','','','','',''],
+    ['p_w','p_w','p_w','p_w','p_w','p_w','p_w','p_w'],
+    ['r_w','n_w','b_w','q_w','k_w','b_w','n_w','r_w'],
+  ];
 
   const [board, setBoard] = useState([
     ['r_b','n_b','b_b','q_b','k_b','b_b','n_b','r_b'],
@@ -12,8 +65,7 @@ const ChessBoard = ({isOnline =false, gameid=null}) => {
     ['p_w','p_w','p_w','p_w','p_w','p_w','p_w','p_w'],
     ['r_w','n_w','b_w','q_w','k_w','b_w','n_w','r_w'],
   ]);
-  console.log("isonline" , isOnline);
-  console.log("gameid" , gameid);
+
 
 
   const [validMoves, setValidMoves] = useState([]);
@@ -22,6 +74,8 @@ const ChessBoard = ({isOnline =false, gameid=null}) => {
   const [turn, setTurn] = useState('w');
   const [kingChecked, setKingChecked] = useState(null);
   const [lastmove, setLastMove] = useState(null);
+
+  const [onlineplayercolor, setOnlinePlayerColor] = useState('w');
 
   const [castleRights, setCastleRights] = useState({
   w_kingMoved: false,
@@ -44,7 +98,6 @@ const ChessBoard = ({isOnline =false, gameid=null}) => {
 
   const inBounds = (r, c) => r >= 0 && r < 8 && c >= 0 && c < 8;
 
-  
  const squareattacked = (row, col, byColor, boardState = board) => {
   const opponentMoves = getOpponentMoves(byColor, boardState);
   return opponentMoves.some(m => m.row === row && m.col === col);
@@ -227,6 +280,66 @@ const ChessBoard = ({isOnline =false, gameid=null}) => {
 
 
 
+useEffect(() => {
+
+  if (isOnline && gameid){
+    const unsubscribe = onSnapshot(doc(db, "games", gameid), (docSnap) => {
+      if (docSnap.exists()) {
+        const gameData = docSnap.data();
+
+        const fetchedBoard = gameData.board;
+
+        let boardToSet = initialBoard;
+        if (Array.isArray(fetchedBoard)) {
+          if (Array.isArray(fetchedBoard[0])) {
+            boardToSet = fetchedBoard;
+          } else if (fetchedBoard.length === 64) {
+            boardToSet = Array.from({ length: 8 }, (_, i) => fetchedBoard.slice(i * 8, i * 8 + 8));
+          }
+        }
+        setBoard(boardToSet);
+
+        setTurn(gameData.turn);
+      }
+    });
+
+    return () => unsubscribe();
+  }
+}, [isOnline, gameid]);
+
+
+
+
+useEffect(() => {
+  const fetchPlayerColor = async () => {
+    if (!isOnline || !gameid || !auth.currentUser) return;
+
+    try {
+      const userSnap = await getDocs(
+        query(collection(db, "users"), where("uid", "==", auth.currentUser.uid))
+      );
+      const currentUsername = userSnap.docs[0]?.data()?.username;
+
+      const gameSnap = await getDoc(doc(db, "games", gameid));
+      const gameData = gameSnap.data();
+
+      if (gameData.player1 === currentUsername) {
+        setOnlinePlayerColor('w');
+      } else if (gameData.player2 === currentUsername) {
+        setOnlinePlayerColor('b');
+      }
+    } catch (err) {
+      console.error("Error determining player color:", err);
+    }
+  };
+
+  fetchPlayerColor();
+}, [isOnline, gameid]);
+
+
+
+
+
   const getLegalMovesForPiece = (piece, row, col, boardState = board) => {
   const allMoves = getMovesForPiece(piece, row, col, board);
   const isWhite = piece.endsWith('_w');
@@ -276,19 +389,25 @@ const ChessBoard = ({isOnline =false, gameid=null}) => {
   };
 
   const selectSquareWithPiece = (row, col, piece) => {
-    if (!piece || !piece.endsWith(`_${turn}`)) return;
+  console.log("Clicked square:", { row, col, piece });
+  if (!piece) return;
+
+  // if (isOnline) {
+  //   if (!onlineplayercolor || !piece.endsWith(`_${onlineplayercolor}`) || turn !== onlineplayercolor) return;
+  // } else {
+  //   if (!piece.endsWith(`_${turn}`)) return;
+  // }
+
     const moves = getLegalMovesForPiece(piece, row,col,board);
     setSelectedSquare({ row, col });
     setSelectedPiece(piece);
     setValidMoves(moves);
+
   };
 
 
 
-
-  const updateBoard = (row, col) => {
-
-
+  const updateBoard = async (row, col) => {
 
     const isValid = validMoves.some(m => m.row === row && m.col === col);
     
@@ -329,6 +448,7 @@ const ChessBoard = ({isOnline =false, gameid=null}) => {
     newBoard[7][0] = '';
   }
 }
+
     if(selectedPiece==='r_w' && selectedSquare===0) setCastleRights(prev=>({...prev,w_rookLeftMoved:true}));
     if(selectedPiece === 'r_w' && selectedSquare===7) setCastleRights(prev=>({...prev,w_rookRightMoved:true}))
 
@@ -378,6 +498,8 @@ const ChessBoard = ({isOnline =false, gameid=null}) => {
     to:{row,col},
   })
 
+  
+
 
 
     setTurn(turn === 'w' ? 'b' : 'w');
@@ -385,8 +507,21 @@ const ChessBoard = ({isOnline =false, gameid=null}) => {
     
     setValidMoves([]);
 
-
-
+    if (isOnline && gameid) {
+    try {
+      await updateDoc(doc(db, "games", gameid), {
+        board: newBoard.flat(),
+        turn: turn ==='w' ? 'b' : 'w',
+        lastMove: {
+          piece: selectedPiece,
+          from: { row: selectedSquare.row, col: selectedSquare.col },
+          to: { row, col },
+        }
+      });
+    } catch (error) {
+      console.error("Failed to update move in Firestore:", error);
+    }
+  }
   };
 
 
@@ -406,9 +541,10 @@ const ChessBoard = ({isOnline =false, gameid=null}) => {
     return true;
   }
 
+
   return (
     <div className="grid grid-cols-8 w-full max-w-[512px] aspect-square mx-auto rounded-md overflow-hidden">
-      {board.map((row, rowIndex) =>
+      {board?.map((row, rowIndex) =>
         row.map((square, colIndex) => {
           const isDark = (rowIndex + colIndex) % 2 === 1;
           const squareColor = isDark ? "bg-[#769656]" : "bg-[#eeeed2]";
@@ -445,11 +581,8 @@ const ChessBoard = ({isOnline =false, gameid=null}) => {
           );
         })
       )}
-
-     
     </div>
   );
 
-   
 };
 export default ChessBoard;

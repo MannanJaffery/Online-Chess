@@ -1,20 +1,17 @@
 import { useEffect } from "react";
-import { collection, addDoc, updateDoc, serverTimestamp, query, where, getDocs } from "firebase/firestore";
+import { collection, addDoc, updateDoc, serverTimestamp , doc , getDoc} from "firebase/firestore";
 import { db, auth } from "../firebase";
 import { useNavigate } from "react-router-dom";
 
 const CreateRoom = () => {
 const navigate = useNavigate();
+
   useEffect(() => {
     const createRoom = async () => {
 
-      const q = query(
-        collection(db, "users"),
-        where("uid", "==", auth.currentUser.uid)
-      );
+     const userSnap = await getDoc(doc(db, "users", auth.currentUser.uid));
+     const username = userSnap.data().username;
 
-      const snap = await getDocs(q);
-      const username = snap.docs[0]?.data().username;
       console.log(username)
 
       if (!username) {

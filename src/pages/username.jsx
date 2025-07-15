@@ -1,23 +1,26 @@
-import { useState } from "react"
-import { addDoc,collection, serverTimestamp } from "firebase/firestore";
-import { db , auth } from "../firebase";
-import { signInAnonymously } from "firebase/auth";
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState  , useEffect} from "react"
 
+
+import { db , auth } from "../firebase";
+
+import { useNavigate } from "react-router-dom";
+import { signInAnonymously } from "firebase/auth";
+import { serverTimestamp } from "firebase/firestore";
+
+import { setDoc } from "firebase/firestore";
+import { doc } from "firebase/firestore";
 
 const Username = () => {
 
     const [name , setName] = useState('');
     const [containspace, setContainsspace] = useState(false);
     const navigate = useNavigate();
-
-    useEffect(()=>{
-        signInAnonymously(auth)
-    },[])
     const storeindb = async (uname) => {
+
+    
+        
   try {
-    await addDoc(collection(db, "users"), {
+    await setDoc(doc(db, "users", auth.currentUser.uid),  {
       username: uname,
       createdAt: serverTimestamp(),
       uid:auth.currentUser.uid,
@@ -29,6 +32,17 @@ const Username = () => {
     console.error("Error storing in DB:", err);
   }
 };
+
+useEffect(() => {
+    signInAnonymously(auth)
+      .then(() => {
+        console.log("Signed in anonymously");
+      })
+      .catch((err) => {
+        console.error("Sign-in error:", err);
+      });
+
+    },[])
 
   return (
     <>
@@ -54,6 +68,7 @@ const Username = () => {
         setName(e.target.value)
       }}
     />
+    
     {containspace && <span className="text-red-100">Cannot Contain Spaces</span>}
 
     <button
