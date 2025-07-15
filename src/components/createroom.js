@@ -23,6 +23,7 @@ const navigate = useNavigate();
         player1: username,
         player2: null,
         status: "waiting",
+        turn:'w',
         createdAt: serverTimestamp(),
       });
       await updateDoc(docRef, {

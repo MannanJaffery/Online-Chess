@@ -22,11 +22,20 @@ const ChessBoard = ({isOnline =false, gameid=null}) => {
         const gameData = gameSnap.data();
         console.log("Game exists:", gameData);
 
+
+        if (!auth.currentUser || !auth.currentUser.uid) {
+          console.log("User not authenticated yet");
+          return;
+        }
+
         const userSnap = await getDocs(
           query(collection(db, "users"), where("uid", "==", auth.currentUser.uid))
         );
         const currentUsername = userSnap.docs[0]?.data().username;
+
+        console.log("current user name " , currentUsername);
         
+
         if(!gameData.player2){
           if(gameData.player1!=currentUsername){
             await updateDoc(docRef , {
@@ -297,9 +306,11 @@ useEffect(() => {
             boardToSet = Array.from({ length: 8 }, (_, i) => fetchedBoard.slice(i * 8, i * 8 + 8));
           }
         }
-        setBoard(boardToSet);
 
+        setBoard(boardToSet);
         setTurn(gameData.turn);
+
+
       }
     });
 
@@ -309,33 +320,43 @@ useEffect(() => {
 
 
 
-
 useEffect(() => {
   const fetchPlayerColor = async () => {
-    if (!isOnline || !gameid || !auth.currentUser) return;
+    if (!isOnline || !gameid ) return;
+    if (!auth.currentUser) {
+  console.log("auth.currentUser not ready yet.");
+  return;
+}
 
     try {
+      console.log("just hello")
       const userSnap = await getDocs(
         query(collection(db, "users"), where("uid", "==", auth.currentUser.uid))
       );
+      console.log("hello 1")
       const currentUsername = userSnap.docs[0]?.data()?.username;
-
+      console.log("hello 2");
       const gameSnap = await getDoc(doc(db, "games", gameid));
       const gameData = gameSnap.data();
+
+
 
       if (gameData.player1 === currentUsername) {
         setOnlinePlayerColor('w');
       } else if (gameData.player2 === currentUsername) {
         setOnlinePlayerColor('b');
       }
+
+
+      console.log("online player collor after setting ",onlineplayercolor)
+
     } catch (err) {
       console.error("Error determining player color:", err);
     }
   };
 
   fetchPlayerColor();
-}, [isOnline, gameid]);
-
+}, [isOnline, gameid , auth.currentUser]);
 
 
 
@@ -344,7 +365,8 @@ useEffect(() => {
   const allMoves = getMovesForPiece(piece, row, col, board);
   const isWhite = piece.endsWith('_w');
   const playerColor = isWhite ? 'w' : 'b';
-
+  
+  
   const legalMoves = allMoves.filter(move => {
     const testBoard = boardState.map(r => [...r]);
 
@@ -388,22 +410,50 @@ useEffect(() => {
     return opponentMoves.some(m => m.row === kingPos.row && m.col === kingPos.col);
   };
 
-  const selectSquareWithPiece = (row, col, piece) => {
+const selectSquareWithPiece = (row, col, piece) => {
   console.log("Clicked square:", { row, col, piece });
-  if (!piece) return;
 
-  // if (isOnline) {
-  //   if (!onlineplayercolor || !piece.endsWith(`_${onlineplayercolor}`) || turn !== onlineplayercolor) return;
-  // } else {
-  //   if (!piece.endsWith(`_${turn}`)) return;
-  // }
+  if (!piece) {
+    console.log("No piece found on this square.");
+    return;
+  }
 
+  if (isOnline) {
+    console.log("Online mode active");
+    console.log("Piece clicked:", piece);
+    console.log("Online player color:", onlineplayercolor);
+    console.log("Game turn:", turn);
+
+    if (!onlineplayercolor) {
+      console.log("Online player color not set yet.");
+      return;
+    }
+
+    if (turn !== onlineplayercolor) {
+      console.log("Not your turn.");
+      return;
+    }
+
+    if (!piece.endsWith(`_${onlineplayercolor}`)) {
+      console.log("You clicked opponent's piece.");
+      return;
+    }
+
+  } else {
+    //offline
+    if (!piece.endsWith(`_${turn}`)) {
+      console.log("Offline: Not your piece.");
+      return;
+    }
+  }
     const moves = getLegalMovesForPiece(piece, row,col,board);
     setSelectedSquare({ row, col });
     setSelectedPiece(piece);
     setValidMoves(moves);
 
   };
+
+
 
 
 
@@ -473,8 +523,6 @@ useEffect(() => {
    
 
     if(selectedPiece === 'r_b' && selectedSquare===7) setCastleRights(prev=>({...prev,b_rookRightMoved:true}))
-
-
 
 
     if (isKingInCheck(opponentColor, newBoard)) {
@@ -586,3 +634,9 @@ useEffect(() => {
 
 };
 export default ChessBoard;
+
+
+
+
+
+//write now , enpassant and checkmate , not working in online 
