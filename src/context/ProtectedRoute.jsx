@@ -1,14 +1,18 @@
 import { useUser } from "./Usercontext"
-import { Navigate } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 
-const ProtectedRoute = ({children}) => {
+const ProtectedRoute = ({ children }) => {
+  const { username, isUserLoaded } = useUser();
+  const navigate = useNavigate();
 
- 
-    const {username} = useUser();
-    if(!username){
-        return <Navigate to = '/' />;
-    }
-    return children;
+  if (!isUserLoaded) return null; // or loading spinner
+
+  if (!username) {
+    navigate('/');
+    return null;
+  }
+
+  return children;
 }
 
-export default ProtectedRoute
+  export default ProtectedRoute;

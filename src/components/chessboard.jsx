@@ -51,6 +51,7 @@ const ChessBoard = ({isOnline =false, gameid=null}) => {
         console.error("Error in func:", err);
       }
     };
+    
 
     func();
   }, [isOnline, gameid]); //when a user joins with a direct link then what , we have to refresh(later fix)
@@ -87,6 +88,12 @@ const ChessBoard = ({isOnline =false, gameid=null}) => {
 
   const [showwinnner , setShowwinner] = useState(false);
   const [winner ,setWinner] = useState('');
+
+  const [promotionPending, setPromotionPending] = useState(null);
+  const [promotionSquare, setPromotionSquare] = useState(null);
+
+
+
   const navigate = useNavigate();
 
   
@@ -374,6 +381,37 @@ useEffect(() => {
 
 
 
+const handlePromotion = async (type) => {
+  const color = promotionPending === 'p_w' ? 'w' : 'b';
+  const newPiece = `${type}_${color}`;
+
+  const newBoard = [...board];
+  newBoard[promotionSquare.row][promotionSquare.col] = newPiece;
+
+    
+  setBoard(newBoard);
+
+  if (isOnline) {
+ 
+    await updateDoc(doc(db, "games", gameid), {
+      board: newBoard,
+      turn: turn === 'w' ? 'b' : 'w',
+      lastMove: {
+        piece: newPiece,
+        from: selectedSquare,
+        to: promotionSquare
+      }
+    });
+  }
+
+
+  setPromotionPending(null);
+  setPromotionSquare(null);
+
+};
+
+
+
   const getLegalMovesForPiece = (piece, row, col, boardState = board) => {
   const allMoves = getMovesForPiece(piece, row, col, board);
   const isWhite = piece.endsWith('_w');
@@ -592,6 +630,17 @@ if (isKingInCheck(opponentColor, newBoard) && is_Checkmate(opponentColor, newBoa
       console.error("Failed to update move in Firestore:", error);
     }
   }
+
+
+  if (
+  selectedPiece === 'p_w' && row === 0 || 
+  selectedPiece === 'p_b' && row === 7
+) {
+  setPromotionPending(selectedPiece);
+setPromotionSquare({ row, col });
+}
+
+
   };
 
 
@@ -652,6 +701,22 @@ if (isKingInCheck(opponentColor, newBoard) && is_Checkmate(opponentColor, newBoa
         })
       )}
 
+
+      {promotionPending && (
+  <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+    <div className="bg-white p-4 rounded shadow-xl space-x-4">
+      {['q', 'r', 'b', 'n'].map(type => (
+        <button
+          key={type}
+          className="bg-blue-500 hover:bg-blue-700 text-white px-4 py-2 rounded"
+          onClick={() => handlePromotion(type)}
+        >
+          Promote to {type.toUpperCase()}
+        </button>
+      ))}
+    </div>
+  </div>
+)}
 
 
       {showwinnner && (
