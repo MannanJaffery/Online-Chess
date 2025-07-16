@@ -81,6 +81,7 @@ const ChessBoard = ({isOnline =false, gameid=null}) => {
 
 
   const [validMoves, setValidMoves] = useState([]);
+
   const [selectedSquare, setSelectedSquare] = useState(null);
   const [selectedPiece, setSelectedPiece] = useState(null);
   const [turn, setTurn] = useState('w');
@@ -119,6 +120,15 @@ const ChessBoard = ({isOnline =false, gameid=null}) => {
     king: [[-1,-1], [-1,0], [-1,1], [0,-1], [0,1], [1,-1], [1,0], [1,1]],
   };
   
+
+
+  const displayinvertedboard = ()=>{
+    if(isOnline && onlineplayercolor=== 'b'){
+      return [...board].slice().reverse().map(row=>[...row].reverse());
+
+    }
+  }
+
 
   const inBounds = (r, c) => r >= 0 && r < 8 && c >= 0 && c < 8;
 
@@ -391,7 +401,7 @@ useEffect(() => {
 const handlePromotion = async (type) => {
   const color = promotionPending === 'p_w' ? 'w' : 'b';
   const newPiece = `${type}_${color}`;
-  const newBoard = board.map(row => [...row]); // deep copy
+  const newBoard = board.map(row => [...row]);
 
   newBoard[promotionSquare.row][promotionSquare.col] = newPiece;
 
@@ -424,7 +434,7 @@ const handlePromotion = async (type) => {
 
 
   const getLegalMovesForPiece = (piece, row, col, boardState = board) => {
-  const allMoves = getMovesForPiece(piece, row, col, board);
+  const allMoves = getMovesForPiece(piece, row, col, boardState);
   const isWhite = piece.endsWith('_w');
   const playerColor = isWhite ? 'w' : 'b';
   
@@ -672,31 +682,60 @@ setPromotionSquare({ row, col });
   }
 
 
+  //////////////////////////////
+
   return (
     <div className="grid grid-cols-8 w-full max-w-[512px] aspect-square mx-auto rounded-md overflow-hidden">
-      {board?.map((row, rowIndex) =>
+      {(isOnline && onlineplayercolor === 'b' ? displayinvertedboard() : board)?.map((row, rowIndex) =>
         row.map((square, colIndex) => {
           const isDark = (rowIndex + colIndex) % 2 === 1;
           const squareColor = isDark ? "bg-[#769656]" : "bg-[#eeeed2]";
-          const piece = square;
-          const isValid = validMoves.some(
-            m => m.row === rowIndex && m.col === colIndex
-          );
-          const isChecked =
-            kingChecked?.row === rowIndex && kingChecked?.col === colIndex;
 
+          const piece = square;
+
+    const actualRow = isOnline && onlineplayercolor === 'b' ? 7 - rowIndex : rowIndex;
+    const actualCol = isOnline && onlineplayercolor === 'b' ? 7 - colIndex : colIndex;
+
+
+          const isValid = validMoves.some(
+            m => m.row === actualRow && m.col === actualCol
+          );
+
+
+
+            let checkedRow = kingChecked?.row;
+            let checkedCol = kingChecked?.col;
+
+
+            if (isOnline && onlineplayercolor === 'b' &&kingChecked) {
+              checkedRow = 7 - checkedRow;
+              checkedCol = 7 - checkedCol;
+            }
+
+            const isChecked =
+              rowIndex === checkedRow && colIndex === checkedCol;
+            
+
+
+           if(isChecked){
+            console.log("checking check")
+           }   
+
+           
           return (
             <div
               key={`${rowIndex}-${colIndex}`}
               className={`relative aspect-square ${squareColor} flex items-center justify-center 
                 ${piece ? 'cursor-pointer' : ''} 
                 ${isValid ? 'ring-4 ring-yellow-400' : ''}
+
                 ${isChecked ? 'bg-red-500 animate-pulse' : ''}`}
+                
               onClick={() => {
                 if (isValid) {
-                  updateBoard(rowIndex, colIndex);
+                  updateBoard(actualRow, actualCol);
                 } else {
-                  selectSquareWithPiece(rowIndex, colIndex, piece);
+                  selectSquareWithPiece(actualRow, actualCol, piece);
                 }
               }}
             >
@@ -714,8 +753,8 @@ setPromotionSquare({ row, col });
 
 
       {promotionPending && (
-  <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-    <div className="bg-white p-4 rounded shadow-xl space-x-4">
+  <div className="fixed inset-0 z-50 bg-black/50 flex flex-col gap-10 items-center justify-center">
+    <div className="bg-white p-4 rounded flex flex-col gap-4 shadow-xl">
       {['q', 'r', 'b', 'n'].map(type => (
         <button
           key={type}
@@ -755,4 +794,7 @@ export default ChessBoard;
 
 
 
-//write now , enpassant, not working in online 
+
+
+
+
