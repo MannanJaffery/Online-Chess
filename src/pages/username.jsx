@@ -6,15 +6,16 @@ import { db , auth } from "../firebase";
 import { useNavigate } from "react-router-dom";
 import { signInAnonymously } from "firebase/auth";
 import { serverTimestamp } from "firebase/firestore";
-
 import { setDoc } from "firebase/firestore";
 import { doc } from "firebase/firestore";
+import { useUser } from "../context/Usercontext";
 
 const Username = () => {
 
     const [name , setName] = useState('');
     const [containspace, setContainsspace] = useState(false);
     const navigate = useNavigate();
+    const {setUsername} = useUser();
     const storeindb = async (uname) => {
 
     
@@ -51,6 +52,7 @@ useEffect(() => {
   <form className="flex flex-col p-8 bg-white/10 backdrop-blur-md rounded-xl shadow-xl border border-white/20 w-full max-w-sm space-y-4"
   onSubmit={(e)=>{
     e.preventDefault();
+  ;
     storeindb(name)}
   }>
 
@@ -66,6 +68,7 @@ useEffect(() => {
         const value = e.target.value;
         setContainsspace(value.includes(' '));
         setName(e.target.value)
+        setUsername(e.target.value)
       }}
     />
     

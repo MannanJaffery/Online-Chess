@@ -1,12 +1,12 @@
 import { useUser } from "./Usercontext"
-import { Navigate, useNavigate } from "react-router-dom"
+import { Navigate } from "react-router-dom"
 
 const ProtectedRoute = ({children}) => {
 
-    const navigate = useNavigate();
+ 
     const {username} = useUser();
     if(!username){
-        return navigate('/');
+        return <Navigate to = '/' />;
     }
     return children;
 }

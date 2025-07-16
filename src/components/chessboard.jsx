@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { db } from "../firebase";
 import { query , where   } from "firebase/firestore";
 import { auth } from "../firebase";
+import { useNavigate } from "react-router-dom";
 
 const ChessBoard = ({isOnline =false, gameid=null}) => {
 
@@ -83,6 +84,12 @@ const ChessBoard = ({isOnline =false, gameid=null}) => {
   const [turn, setTurn] = useState('w');
   const [kingChecked, setKingChecked] = useState(null);
   const [lastmove, setLastMove] = useState(null);
+
+  const [showwinnner , setShowwinner] = useState(false);
+  const [winner ,setWinner] = useState('');
+  const navigate = useNavigate();
+
+  
 
   const [onlineplayercolor, setOnlinePlayerColor] = useState('w');
 
@@ -538,14 +545,11 @@ const selectSquareWithPiece = (row, col, piece) => {
 
 
     
-
-  //   if (isKingInCheck(opponentColor, newBoard) && is_Checkmate(opponentColor , newBoard)) {
-  //   alert(`Checkmate! ${turn.toUpperCase()} wins!`);
-
-  //   return;
-  // }
-
-
+if (isKingInCheck(opponentColor, newBoard) && is_Checkmate(opponentColor, newBoard)) {
+  setWinner(turn.toUpperCase());
+  setShowwinner(true);
+  return;
+}
 
 
   //last move
@@ -556,7 +560,7 @@ const selectSquareWithPiece = (row, col, piece) => {
   })
 
 
-  
+
   if(isOnline){
     await updateDoc(doc(db,"games" , gameid),{
       lastmove:{
@@ -647,6 +651,24 @@ const selectSquareWithPiece = (row, col, piece) => {
           );
         })
       )}
+
+
+
+      {showwinnner && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+    <div className="bg-white/10 backdrop-blur-md border border-white/20 text-white p-8 rounded-xl shadow-xl text-center space-y-4">
+      <h2 className="text-2xl font-bold">Checkmate!</h2>
+      <p className="text-lg">{winner} wins the game</p>
+      <button
+        onClick={() => navigate('/modes')}
+        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition"
+      >
+        Go to Modes
+      </button>
+    </div>
+  </div>
+)}
+
     </div>
   );
 
