@@ -566,9 +566,9 @@ const selectSquareWithPiece = (row, col, piece) => {
     })
   }
 
+
+
   
-
-
 
     setTurn(turn === 'w' ? 'b' : 'w');
 
