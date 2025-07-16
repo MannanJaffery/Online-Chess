@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 const ChessBoard = ({isOnline =false, gameid=null}) => {
 
   useEffect(() => {
+
     const func = async () => {
       if (!isOnline || !gameid) return;
 
@@ -326,12 +327,17 @@ useEffect(() => {
           }
         }
 
-        setBoard(boardToSet);
+         const newString = JSON.stringify(boardToSet);
+        const currentString = JSON.stringify(board);
+        if (newString !== currentString) {
+          setBoard(boardToSet);
+        }
+
         setTurn(gameData.turn);
         setLastMove(gameData.lastmove);
 
-
       }
+
     });
 
     return () => unsubscribe();
@@ -376,6 +382,7 @@ useEffect(() => {
   };
 
   fetchPlayerColor();
+
 }, [isOnline, gameid , auth.currentUser]);
 
 
@@ -384,31 +391,35 @@ useEffect(() => {
 const handlePromotion = async (type) => {
   const color = promotionPending === 'p_w' ? 'w' : 'b';
   const newPiece = `${type}_${color}`;
+  const newBoard = board.map(row => [...row]); // deep copy
 
-  const newBoard = [...board];
   newBoard[promotionSquare.row][promotionSquare.col] = newPiece;
 
-    
   setBoard(newBoard);
 
-  if (isOnline) {
- 
-    await updateDoc(doc(db, "games", gameid), {
-      board: newBoard,
-      turn: turn === 'w' ? 'b' : 'w',
-      lastMove: {
-        piece: newPiece,
-        from: selectedSquare,
-        to: promotionSquare
-      }
-    });
+  console.log("board after promoting " ,newBoard )
+
+  try {
+    if (isOnline) {
+      await updateDoc(doc(db, "games", gameid), {
+        board: newBoard.flat(),
+        lastMove: {
+          piece: newPiece,
+          from: selectedSquare,
+          to: promotionSquare
+        }
+      });
+    }
+  } catch (err) {
+    console.error("Failed to update game on Firebase:", err);
+   
+  } finally {
+
+    setPromotionPending(null);
+    setPromotionSquare(null);
   }
-
-
-  setPromotionPending(null);
-  setPromotionSquare(null);
-
 };
+
 
 
 
