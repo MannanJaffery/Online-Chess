@@ -556,6 +556,7 @@ const selectSquareWithPiece = (row, col, piece) => {
   })
 
 
+  
   if(isOnline){
     await updateDoc(doc(db,"games" , gameid),{
       lastmove:{
@@ -566,9 +567,6 @@ const selectSquareWithPiece = (row, col, piece) => {
     })
   }
 
-
-
-  
 
     setTurn(turn === 'w' ? 'b' : 'w');
 
