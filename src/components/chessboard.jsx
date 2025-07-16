@@ -221,7 +221,7 @@ const ChessBoard = ({isOnline =false, gameid=null}) => {
         if(!flag){
             // For WHITE
             if (!castleRights.w_kingMoved && !isKingInCheck('w', boardState)) {
-            
+
               if (
                 !castleRights.w_rookRightMoved &&
                 boardState[7][5] === '' &&
@@ -272,11 +272,16 @@ const ChessBoard = ({isOnline =false, gameid=null}) => {
           }
 
 
+
+
         for (let [dr, dc] of directions.king) {
           const r = row + dr, c = col + dc;
           if (inBounds(r, c)) {
+
+
             const target = boardState[r][c];
-            if (!target || target.endsWith(opponentColor)) addMove(r, c);
+            
+            if ((!target || target.endsWith(opponentColor)) && !squareattacked(r, c, opponentColor)) addMove(r, c);
           }
         }
         break;
@@ -309,6 +314,7 @@ useEffect(() => {
 
         setBoard(boardToSet);
         setTurn(gameData.turn);
+        setLastMove(gameData.lastmove);
 
 
       }
@@ -463,8 +469,6 @@ const selectSquareWithPiece = (row, col, piece) => {
     
     if (!isValid || !selectedSquare || !selectedPiece) return;
 
-
-
     const move = validMoves.find(move=>move.row===row&&move.col===col);
 
     
@@ -533,11 +537,16 @@ const selectSquareWithPiece = (row, col, piece) => {
     }
 
 
-    if (isKingInCheck(opponentColor, newBoard) && is_Checkmate(opponentColor , newBoard)) {
-    alert(`Checkmate! ${turn.toUpperCase()} wins!`);
+    
 
-    return;
-  }
+  //   if (isKingInCheck(opponentColor, newBoard) && is_Checkmate(opponentColor , newBoard)) {
+  //   alert(`Checkmate! ${turn.toUpperCase()} wins!`);
+
+  //   return;
+  // }
+
+
+
 
   //last move
   setLastMove({
@@ -545,6 +554,17 @@ const selectSquareWithPiece = (row, col, piece) => {
     from:{row:selectedSquare.row,col:selectedSquare.col},
     to:{row,col},
   })
+
+
+  if(isOnline){
+    await updateDoc(doc(db,"games" , gameid),{
+      lastmove:{
+        piece:selectedPiece,
+        from:{row:selectedSquare.row,col:selectedSquare.col},
+        to:{row,col},
+      }
+    })
+  }
 
   
 
@@ -639,4 +659,4 @@ export default ChessBoard;
 
 
 
-//write now , enpassant and checkmate , not working in online 
+//write now , enpassant, not working in online 
