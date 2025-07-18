@@ -4,15 +4,12 @@ import { db } from "../firebase";
 import { query , where   } from "firebase/firestore";
 import { auth } from "../firebase";
 import { useNavigate } from "react-router-dom";
+import { useRef } from "react";
 
 
 const ChessBoard = ({isOnline =false, gameid=null}) => {
 
-  
-
-
-  const [p2,setP2] = useState('');
-
+const hasReloaded = localStorage.getItem("hasReloaded") === "true";
   useEffect(() => {
 
     const func = async () => {
@@ -46,7 +43,6 @@ const ChessBoard = ({isOnline =false, gameid=null}) => {
 
         if(!gameData.player2){
           if(gameData.player1!=currentUsername){
-            setP2(currentUsername);
             await updateDoc(docRef , {
               player2:currentUsername,
               status:"active",
@@ -64,10 +60,28 @@ const ChessBoard = ({isOnline =false, gameid=null}) => {
     func();
   }, [isOnline, gameid]);
 
-  useEffect(()=>{
-    console.log("player2 joined");
-  },[p2])
 
+ useEffect(() => {
+  if (!isOnline || !gameid) return;
+
+  const unsub = onSnapshot(doc(db, "games", gameid), (docSnap) => {
+    if (!docSnap.exists()) return;
+
+    const gameData = docSnap.data();
+
+    if (gameData?.player2 && localStorage.getItem("hasReloaded") !== "true") {
+      console.log("Player 2 joined. Reloading in 3 seconds...");
+
+      localStorage.setItem("hasReloaded", "true");
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    }
+  });
+
+  return () => unsub();
+}, [isOnline, gameid]);
 
   
 
@@ -755,6 +769,7 @@ useEffect(() => {
 
 
 
+
   //////////////////////////////
 
   return (
@@ -822,6 +837,8 @@ useEffect(() => {
                   className="w-full h-full object-contain p-1 select-none pointer-events-none"
                 />
               )}
+              
+
             </div>
           );
         })
@@ -843,6 +860,7 @@ useEffect(() => {
     </div>
   </div>
 )}
+
 
 
       {showwinnner && (
