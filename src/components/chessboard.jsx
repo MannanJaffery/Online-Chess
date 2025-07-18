@@ -4,7 +4,7 @@ import { db } from "../firebase";
 import { query , where   } from "firebase/firestore";
 import { auth } from "../firebase";
 import { useNavigate } from "react-router-dom";
-import { useRef } from "react";
+
 
 
 const ChessBoard = ({isOnline =false, gameid=null}) => {
@@ -819,8 +819,9 @@ useEffect(() => {
               key={`${rowIndex}-${colIndex}`}
               className={`relative aspect-square ${squareColor} flex items-center justify-center 
                 ${piece ? 'cursor-pointer' : ''} 
-                ${isValid ? 'ring-4 ring-yellow-400' : ''}
+             
                 ${isChecked ?'bg-red-500 animate-pulse' : ''}`}
+
                 
               onClick={() => {
                 if (isValid) {
@@ -830,6 +831,9 @@ useEffect(() => {
                 }
               }}
             >
+                                {isValid && (
+    <span className="absolute w-2 h-2 bg-black rounded-full"></span>
+  )}
               {piece && (
                 <img
                   src={`/${piece}.png`}
