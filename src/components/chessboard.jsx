@@ -60,17 +60,15 @@ const hasReloaded = localStorage.getItem("hasReloaded") === "true";
     func();
   }, [isOnline, gameid]);
 
-
+// Cleanup effect — remove flag only when tab is closed, not on every mount
 useEffect(() => {
- //clean up
-  if (localStorage.getItem("hasReloaded") === "true") {
-    localStorage.removeItem("hasReloaded");
-    console.log("Cleared hasReloaded from localStorage after reload");
-  }
+  return () => {
+    sessionStorage.removeItem("hasReloaded");
+    console.log("Removed hasReloaded from sessionStorage");
+  };
 }, []);
 
-
-
+// Reload trigger effect
 useEffect(() => {
   if (!isOnline || !gameid) return;
 
@@ -79,10 +77,10 @@ useEffect(() => {
 
     const gameData = docSnap.data();
 
-    if (gameData?.player2 && localStorage.getItem("hasReloaded") !== "true") {
+    if (gameData?.player2 && sessionStorage.getItem("hasReloaded") !== "true") {
       console.log("Player 2 joined. Reloading in 3 seconds...");
 
-      localStorage.setItem("hasReloaded", "true");
+      sessionStorage.setItem("hasReloaded", "true");
 
       setTimeout(() => {
         window.location.reload();
@@ -92,6 +90,7 @@ useEffect(() => {
 
   return () => unsub();
 }, [isOnline, gameid]);
+
 
 
   
