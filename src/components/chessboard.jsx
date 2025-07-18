@@ -61,7 +61,17 @@ const hasReloaded = localStorage.getItem("hasReloaded") === "true";
   }, [isOnline, gameid]);
 
 
- useEffect(() => {
+useEffect(() => {
+ //clean up
+  if (localStorage.getItem("hasReloaded") === "true") {
+    localStorage.removeItem("hasReloaded");
+    console.log("Cleared hasReloaded from localStorage after reload");
+  }
+}, []);
+
+
+
+useEffect(() => {
   if (!isOnline || !gameid) return;
 
   const unsub = onSnapshot(doc(db, "games", gameid), (docSnap) => {
@@ -82,6 +92,7 @@ const hasReloaded = localStorage.getItem("hasReloaded") === "true";
 
   return () => unsub();
 }, [isOnline, gameid]);
+
 
   
 
