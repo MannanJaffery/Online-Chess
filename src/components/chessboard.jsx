@@ -359,6 +359,15 @@ useEffect(() => {
       if (docSnap.exists()) {
         const gameData = docSnap.data();
 
+        const isPlayer1 = gameData.player1 === currentUid;
+    const isPlayer2 = gameData.player2 === currentUid;
+    const gameFull = gameData.player1 && gameData.player2;
+
+    if (gameFull && !isPlayer1 && !isPlayer2) {
+      alert("This game already has 2 players.");
+      window.location.href = "/"; // redirect to home or error page
+      return;
+    }
         const fetchedBoard = gameData.board;
 
         let boardToSet = initialBoard;
