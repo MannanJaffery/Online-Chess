@@ -60,7 +60,8 @@ const hasReloaded = localStorage.getItem("hasReloaded") === "true";
     func();
   }, [isOnline, gameid]);
 
-useEffect(() => {
+
+ useEffect(() => {
   if (!isOnline || !gameid) return;
 
   const unsub = onSnapshot(doc(db, "games", gameid), (docSnap) => {
@@ -68,21 +69,21 @@ useEffect(() => {
 
     const gameData = docSnap.data();
 
-    const hasReloaded = sessionStorage.getItem("hasReloaded");
+    if (gameData?.player2 && localStorage.getItem("hasReloaded") !== "true") {
+      console.log("Player 2 joined. Reloading in 3 seconds...");
 
-    if (gameData?.player2 && hasReloaded !== "true") {
-      sessionStorage.setItem("hasReloaded", "true");
+      localStorage.setItem("hasReloaded", "true");
 
-  
       setTimeout(() => {
-        window.location.href = window.location.href;
-      }, 2000);
+        window.location.reload();
+      }, 3000);
     }
   });
 
   return () => unsub();
 }, [isOnline, gameid]);
 
+  
 
   const initialBoard = [['r_b','n_b','b_b','q_b','k_b','b_b','n_b','r_b'],
     ['p_b','p_b','p_b','p_b','p_b','p_b','p_b','p_b'],
@@ -359,15 +360,6 @@ useEffect(() => {
       if (docSnap.exists()) {
         const gameData = docSnap.data();
 
-        const isPlayer1 = gameData.player1 === currentUid;
-    const isPlayer2 = gameData.player2 === currentUid;
-    const gameFull = gameData.player1 && gameData.player2;
-
-    if (gameFull && !isPlayer1 && !isPlayer2) {
-      alert("This game already has 2 players.");
-      window.location.href = "/"; // redirect to home or error page
-      return;
-    }
         const fetchedBoard = gameData.board;
 
         let boardToSet = initialBoard;
