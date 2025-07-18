@@ -5,7 +5,13 @@ import { query , where   } from "firebase/firestore";
 import { auth } from "../firebase";
 import { useNavigate } from "react-router-dom";
 
+
 const ChessBoard = ({isOnline =false, gameid=null}) => {
+
+  
+
+
+  const [p2,setP2] = useState('');
 
   useEffect(() => {
 
@@ -40,6 +46,7 @@ const ChessBoard = ({isOnline =false, gameid=null}) => {
 
         if(!gameData.player2){
           if(gameData.player1!=currentUsername){
+            setP2(currentUsername);
             await updateDoc(docRef , {
               player2:currentUsername,
               status:"active",
@@ -55,7 +62,14 @@ const ChessBoard = ({isOnline =false, gameid=null}) => {
     
 
     func();
-  }, [isOnline, gameid]); //when a user joins with a direct link then what , we have to refresh(later fix)
+  }, [isOnline, gameid]);
+
+  useEffect(()=>{
+    console.log("player2 joined");
+  },[p2])
+
+
+  
 
   const initialBoard = [['r_b','n_b','b_b','q_b','k_b','b_b','n_b','r_b'],
     ['p_b','p_b','p_b','p_b','p_b','p_b','p_b','p_b'],
@@ -86,6 +100,11 @@ const ChessBoard = ({isOnline =false, gameid=null}) => {
   const [selectedPiece, setSelectedPiece] = useState(null);
   const [turn, setTurn] = useState('w');
   const [kingChecked, setKingChecked] = useState(null);
+
+  const [kingcheckmate , setKingCheckMate] = useState(false);
+  
+  const [onlinekingcheck ,setOnlinekingCheck]= useState(null);
+
   const [lastmove, setLastMove] = useState(null);
 
   const [showwinnner , setShowwinner] = useState(false);
@@ -94,6 +113,7 @@ const ChessBoard = ({isOnline =false, gameid=null}) => {
   const [promotionPending, setPromotionPending] = useState(null);
   const [promotionSquare, setPromotionSquare] = useState(null);
 
+  
 
 
   const navigate = useNavigate();
@@ -346,6 +366,15 @@ useEffect(() => {
         setTurn(gameData.turn);
         setLastMove(gameData.lastmove);
 
+        setWinner(gameData.checkmate?.winner || null);
+        setShowwinner(!!gameData.checkmate);
+
+
+
+        if ('kingChecked' in gameData) {
+          setOnlinekingCheck(gameData.kingChecked || null);
+        }
+
       }
 
     });
@@ -594,12 +623,27 @@ const selectSquareWithPiece = (row, col, piece) => {
 
     if(selectedPiece === 'r_b' && selectedSquare===7) setCastleRights(prev=>({...prev,b_rookRightMoved:true}))
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     if (isKingInCheck(opponentColor, newBoard)) {
       setKingChecked(kingPos);
+
+      if(isOnline && gameid){
+        await updateDoc(doc(db,"games" , gameid),{
+          
+          kingChecked:kingPos,
+        })
+      }
       
     } else {
       setKingChecked(null);
+
+      if(isOnline && gameid){
+        await updateDoc(doc(db,"games" , gameid),{
+          
+          kingChecked:null,
+        })
+      }
     }
 
 
@@ -607,6 +651,14 @@ const selectSquareWithPiece = (row, col, piece) => {
 if (isKingInCheck(opponentColor, newBoard) && is_Checkmate(opponentColor, newBoard)) {
   setWinner(turn.toUpperCase());
   setShowwinner(true);
+  if (isOnline) {
+    await updateDoc(doc(db, "games", gameid), {
+      checkmate: {
+        winner: turn.toUpperCase(),
+        timestamp: Date.now()
+      }
+    });
+  }
   return;
 }
 
@@ -678,23 +730,48 @@ setPromotionSquare({ row, col });
       }
     }
 
+
     return true;
   }
+
+  const invertedBoard = displayinvertedboard();
+
+
+
+useEffect(() => {
+  const fetchCheck = async () => {
+    if (isOnline && gameid) {
+      const docSnap = await getDoc(doc(db, "games", gameid));
+      if (docSnap.exists()) {        
+        const data = docSnap.data();
+        setOnlinekingCheck(data.kingChecked || null);
+        
+      }
+    }
+  };
+
+  fetchCheck();
+}, [isOnline, gameid]);
+
 
 
   //////////////////////////////
 
   return (
     <div className="grid grid-cols-8 w-full max-w-[512px] aspect-square mx-auto rounded-md overflow-hidden">
-      {(isOnline && onlineplayercolor === 'b' ? displayinvertedboard() : board)?.map((row, rowIndex) =>
+
+      {(isOnline && onlineplayercolor === 'b' ? invertedBoard: board)?.map((row, rowIndex) =>
+
+
+
         row.map((square, colIndex) => {
           const isDark = (rowIndex + colIndex) % 2 === 1;
           const squareColor = isDark ? "bg-[#769656]" : "bg-[#eeeed2]";
 
           const piece = square;
 
-    const actualRow = isOnline && onlineplayercolor === 'b' ? 7 - rowIndex : rowIndex;
-    const actualCol = isOnline && onlineplayercolor === 'b' ? 7 - colIndex : colIndex;
+          const actualRow = isOnline && onlineplayercolor === 'b' ? 7 - rowIndex : rowIndex;
+          const actualCol = isOnline && onlineplayercolor === 'b' ? 7 - colIndex : colIndex;
 
 
           const isValid = validMoves.some(
@@ -702,24 +779,24 @@ setPromotionSquare({ row, col });
           );
 
 
-
-            let checkedRow = kingChecked?.row;
-            let checkedCol = kingChecked?.col;
+            const kingcheck = isOnline ? onlinekingcheck : kingChecked;   
 
 
-            if (isOnline && onlineplayercolor === 'b' &&kingChecked) {
+            console.log(kingcheck);
+
+            let checkedRow = kingcheck?.row;
+            let checkedCol = kingcheck?.col;
+
+
+            if (isOnline && onlineplayercolor === 'b' &&kingcheck) {
               checkedRow = 7 - checkedRow;
               checkedCol = 7 - checkedCol;
             }
 
             const isChecked =
               rowIndex === checkedRow && colIndex === checkedCol;
-            
 
 
-           if(isChecked){
-            console.log("checking check")
-           }   
 
            
           return (
@@ -728,8 +805,7 @@ setPromotionSquare({ row, col });
               className={`relative aspect-square ${squareColor} flex items-center justify-center 
                 ${piece ? 'cursor-pointer' : ''} 
                 ${isValid ? 'ring-4 ring-yellow-400' : ''}
-
-                ${isChecked ? 'bg-red-500 animate-pulse' : ''}`}
+                ${isChecked ?'bg-red-500 animate-pulse' : ''}`}
                 
               onClick={() => {
                 if (isValid) {
@@ -789,12 +865,3 @@ setPromotionSquare({ row, col });
 
 };
 export default ChessBoard;
-
-
-
-
-
-
-
-
-
